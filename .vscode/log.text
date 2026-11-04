@@ -3,11 +3,52 @@ SELECT
 	c.name,
     p.product_name,
     o.quantity
-FROM 
+FROM
 	customers AS c
 INNER JOIN
 	orders AS o on c.customer_id = o.customer_id
 INNER JOIN
 	products AS p on o.product_id = p.product_id
 WHERE c.name = '田中太郎';
--->
+
+SELECT
+	c.name
+FROM
+	customers AS c
+INNER JOIN
+	orders AS o
+ON
+	o.customer_id = c.customer_id
+INNER JOIN
+	products AS p
+ON
+	 o.product_id = p.product_id
+WHERE p.product_name = 'ノートPC';-->
+
+//この文章はSQLの実行ログです。
+14～の文章は上から順に
+
+SELECT
+	c.name
+・顧客リストから、引き出す
+
+FROM
+	customers AS c
+・Customersをｃとして扱う
+
+INNER JOIN
+・インナージョインが並列文章として結合を行うためのもの。(内部的に　合致する内容のものをレコードして、其れを記録する。最終的にwherで選択するためのレコードを作るイメージ)
+ON
+	o.customer_id = c.customer_id
+・INNER JOIN の次は〇〇から取り出すための条件式を書く
+
+合致させるもの
+INNER JOIN ~ ON
+条件式
+ON～
+
+WHERE
+・セレクトする条件を指定するためのもの。先程までのインナージョインで紐づけたものから、レコード的に引っ張ることができる。
+
+・尚、FROM内でジョインしたものは複数でも紐付けられる
+・その場合、各JOINに対してONで条件式を指定する必要がある
