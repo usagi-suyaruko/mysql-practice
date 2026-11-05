@@ -52,3 +52,66 @@ WHERE
 
 ・尚、FROM内でジョインしたものは複数でも紐付けられる
 ・その場合、各JOINに対してONで条件式を指定する必要がある
+
+SELECT
+	p.product_name
+FROM
+	products as p
+LEFT OUTER JOIN
+   	orders AS o
+ON p.product_id = o.product_id
+WHERE o.product_id IS NULL;
+
+上から順に
+SELECT
+	p.product_name
+・今回引き出すもの↑
+FROM
+	products as p
+・Productの範囲から抜き出す。名付けはついで
+
+LEFT OUTER JOIN
+   	orders AS o
+ON p.product_id = o.product_id
+・レコードを作成する。left outer joinは合致しないものまで表示する。その際合致しない値には後者にNUllを代入する。
+
+WHERE o.product_id IS NULL;
+・単にo.productの中にあるNULLを抽出して、selectのindexに返しています。
+
+SELECT * FROM post AS p WHERE p.user_id = 1 AND (p.title = 'A' OR p.content LIKE '%B%');
+・右側だけ書くと、p.useridで＝１の条件且つ、タイトルがAもしくはBが含まれる物を抽出する。っていう内容。
+あいまい検索 (LIKE)
+完全一致ではなく、特定に文字列を含むレコードを探したい場合にLIKEを使います。%（0文字以上の任意の文字列）や_（任意の1文字）といったワイルドカードと組み合わせます。
+
+'A%' : Aから始まる
+'%A' : Aで終わる
+'%A%' : Aを含む
+'A_B' : Aで始まり、Bで終わり、間に1文字だけある（例: AAB, AXB）
+
+
+範囲指定
+
+
+-- 通常の書き方
+SELECT * FROM users where id >= 1 AND id <= 3;
+-- BETWEEN　を使った書き方
+SELECT * FROM users WHERE id BETWEEN 1 AND 3;
+
+-- これはどちらも、同じ意味になる。between は乱数のrandbetweenの時も使ったが、これからこれまでの間という意味がある
+
+
+-- OR と IN の違い
+
+-- ｏｒを使った書き方
+SELECT * FROM post AS p WHERE p.user_id = 1 or p.user_id = 3;
+
+-- inをつかった書き方
+SELECT * FROM post as p WHERE p.user_id IN (1, 3);
+
+SELECT * FROM post AS p ORDER BY p.created_at DESC;
+-- 更新時間を指定していますね。降順的に書いてくれと。LIMITはいいのだろうか？
+-- orderbyニ関してはorder by (カラム名 , 方式 , 以降は第ニ、第三条件としてカラム名、方式を繰り返して良し)と考えればいいよ
+-- DESCが降順
+-- ASCが昇順
+SELECT * FROM post as p ORDER BY user_id ASC, p.created_at DESC;
+-- 読み解くと、ユーザーidが若い準に更新時間を表示させる。LIMITがないので、ユーザーの全データを参照しているね。
