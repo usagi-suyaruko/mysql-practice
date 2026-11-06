@@ -115,3 +115,255 @@ SELECT * FROM post AS p ORDER BY p.created_at DESC;
 -- ASCが昇順
 SELECT * FROM post as p ORDER BY user_id ASC, p.created_at DESC;
 -- 読み解くと、ユーザーidが若い準に更新時間を表示させる。LIMITがないので、ユーザーの全データを参照しているね。
+
+SELECT * FROM post as p ORDER BY p.created_at desc LIMIT 5;
+-- 表示上限を5件にする。だけ。
+
+DBをツール化しようかな？とか考えたけど、そもそも新しいデータの追加に関しては外部言語からの入力で各自になるから、そもそもGUIでの操作を必要としない上、追加項目に関して人の手で介入することは少なそうだから別にいらないな
+
+SELECT * FROM posts ORDER BY created_at DESC LIMIT 10 OFFSET 21;
+--　表示条件を10件にして、21件目以降を表示する。これの場合よくあるサイト系だと3ページめのでーたからの表示となるような感じになる。多分、1ページ目が1～10件、2ページ目が11～20件、3ページ目が21～30件というイメージ。
+
+--と思ったらoffsetはしていした件数を飛ばすだけの模様。何たる暴挙笑
+
+-- SELECT COUNT(u.id) FROM users AS u;
+
+結果4
+
+1
+john.doe@example.com
+password123
+2026-11-02 07:33:03
+2026-11-03 11:39:50
+John_doe
+
+2
+alice@example.com
+pass_alice
+2026-11-02 09:00:56
+2026-11-03 11:39:50
+Alice
+
+4
+charlie@example.com
+pass_charlie
+2026-11-02 09:00:56
+2026-11-03 11:39:50
+Charlie
+
+5
+usausa@usa.usa
+usausausausa
+2026-11-02 09:32:41
+2026-11-03 11:43:57
+usagi
+
+
+idを持つユーザーをカウントした。だから4。Excelと同じだな。特に何も言う事がないぞ
+
+
+強いていえば、countしたデータを残す場合は別のテーブルでも作って既存idをPKにして、max+1でinsert出来たら自動的に記録に残せるんだが...カラムを追加する場合はあんまりセキュリティ的にも行いたくないな。ddosニ弱そう。
+
+
+SELECT COUNT(u.id) AS total_users FROM users AS u;
+
+-- やっとasに関して理解できた。これは変数みたいなものだ。
+-- あと各言語への返り値にする際のカラム名としての選択肢として使えるところが利便性が高い
+
+
+SELECT
+	p.user_id,
+    count(p.id) as post_count
+FROM
+	post AS p
+GROUP BY -- ◯◯でまとめます
+	p.user_id; -- 今回だとこれでまとめます。1番の人が～2番の人が～って感じ
+
+
+
+SELECT
+    u.name,
+	COUNT(p.id) AS post_count
+FROM -- ここから検索
+	users AS u
+JOIN -- 結合
+	post AS p ON u.id = p.user_id -- usersidにpostidが合致する情報を結合
+GROUP BY -- 下記の内容で上記の範囲から合致する条件のものを取り出します。
+	u.id, u.name
+HAVING
+	post_count >= 3
+-- 絞り込みの種類の問題。whereとhavingがありhavingはグループ化したあとの集計結果に足してい条件を指定する。
+ORDER BY
+	post_count DESC;
+
+計算順序
+
+from　--ここから
+join -- 結合
+group by　-- 今回だと、ポスト内容の量を、ユーザーidとユーザーnameでまとめる
+having　-- グループ化した後の条件を指定　今回だと、ポストした回数が3回以上のユーザーを絞り込む
+where　-- 今回だと、結合するまえのデータから引っ張ることになる。からこれは使”わ”なかった。
+select　-- 指定した内容の物。今回だとユーザー名とポスト回数を取得する
+order by; -- 今回の場合はポストカウントの多い方から表示する。
+
+SELECT
+	u.name
+    COUNT(p.id) AS post_count
+FROM
+	users AS u
+JOIN
+	post AS p ON u.id = p.user_id
+WHERE
+	p.title LIKE '%PHP%'
+GROUP BY
+	u.id, u.name
+ORDER BY
+	post_count DESC;
+
+
+	これ何が書いてあるかって言うと
+ほしいデータは、
+ユーザー名とポスト回数で。
+前提がポストタイトルにPHPが含まれるかどうかである。
+
+じゃあ処理はってなると
+ジョインでfromにあるテーブルと結合させ、特定の条件で合致させた
+その後、whereとgroup byで条件を指定して、ソレに合致した。
+
+最後にorder byで回数の多い順に降順している。
+
+
+
+SELECT
+    id, title, LENGTH(content) AS content_length
+-- lengthは文字列の長さを返すSQL関数です。contentカラムの文字数を取得できます。
+FROM
+	post
+WHERE
+	LENGTH(content) > (SELECT AVG(LENGTH(content)) from post);
+
+これはlengthでpost文字列の長さを取得し、其れを無付けしたあと、平均を取るためにサブクエリを使用しています。avgはaverageの略称です。サブクエリではどういうわけか、名前を変えたあとも変わらずに、元の名前で書いていますね。で、まあ、最後は平均に対して、今のレコード内のポスト内容の文字列が、平均より長いかどうかを判断し、其れを抽出していますね。
+
+group　ｂｙでやっていないのは特にそういう司令ではないからかな？
+まあ其れは其れとして文字列比較だとbit単位での出力になっっているので、lengthではなく、char_lengthを使うほうが日本語対応としては正しいです。もし、英文のみと言うものであればlengthでも問題ありません。
+
+容量と処理をかんがえると、
+
+例えば、文字列記録として日本語を16進数的に改変して其れだけを引っ張ればあとはアプリ化して、他の端末側で複合処理捺せればDBのデータセンター側の処理は格段に軽くなるか。仮に同時処理が数万として
+あーでもこれやると平均の出し方とかといったもののデータ処理が結局大変になるか。
+まーこんなDB側での統計取る必要性があるのかはともかくとして
+
+
+DBの教材見ていて思うのが、lengthにかんして、これBit数数えるから日本語版だと狂うんだよなあ。と思ってしまう。CHAR_lengthじゃないと。でも、すでにレコード内で型番指定されているから関係ないのだろうかと考えてしまう
+
+SELECT * FROM post
+WHERE id NOT IN (SELECT DISTINCT post_id FROM post_tag);
+
+distinctは重複の削除が出来ます。
+ですので読み解くとtagを持たないpostを取得していることになります。
+NOT INはそれ以外を取得すると言う関数のことです。
+
+
+
+SELECT
+	u.name,
+    post_counts.counts
+FROM
+	users AS u
+JOIN
+	(
+	SELECT
+       	user_id,COUNT(*)AS counts
+    FROM post
+    GROUP BY user_id
+	)
+AS post_counts ON u.id = post_counts.user_id;
+
+取得するもの
+・ユーザー名
+・ポストの投稿回数
+
+
+サブクエリ内select
+取得するもの
+・ユーザーID
+・そのユーザーによるポストの投稿回数
+
+ポスト位置からグループバイでユーザーIDごとに集計している
+
+で最後にfrom(join users.idとpost_counts.user_id)を結合させていることで、ユーザー名とそのユーザーのポスト回数を取得している。と。
+でその新しく作ったテーブル情報から、
+・ユーザー名
+・ポストの投稿回数
+
+を取得しましたというのが今回の文章の意訳ってことになる。
+
+
+
+
+count(*)はcount(カラム名)と違って、NULLも含めて全ての行をカウントする。だからグループバイで集計する際に、NULLを無視せずに正確な件数を取得できる。
+一方、count(カラム名)は指定したカラムがNULLでない行だけをカウントするので、NULLを含む場合は注意が必要である。まあ気になるならisnull(sum(count(カラム名)), 0)のようにNULLを0に変換して集計する方法もある。と、おもう。どっちが処理的に軽いかなというのは多分カラムの種類数によって変わるのかな？とおもいます。拡張性的か、処理の軽さか。まあ、他言語側でニ択にできるようにすればいいのかな。カラム数の取得を行い、それのかずだけ～としておく。でもこれカラム名の取得条件を権限化しておかないとセキュリティ的に危ないよなあ。と思います。
+
+まあこれをするくらいならテーブルを増やすか。だから＊で十分。処理はnullを判定する分、count(カラム名)のほうが少し重くなるらしい。文章も増えるし
+
+SELECT * FROM users u
+WHERE EXISTS (
+    SELECT 1 FROM posts p WHERE p.user_id = u.id
+);
+
+単にasの省略がされているだけですね。セレクトでポストをpにして、trueの式を引っ張りだし条件が一致している場合1を返します。
+
+つまり、各レコードの行で処理を行い、あっていればば1をつくり、その行の処理がwhereの式としてのtrueとしてその情報を取り出せと命令しているわけです。
+
+そしてexistsは関数としては、データになにか入っているかかどうかをtrueかfalseで返している関数となります。
+
+HANDS-ON
+
+CREATE DATABASE sales_analysis CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
+
+CREATE TABLE selse(
+	sale_id INT PRIMARY KEY AUTO_INCREMENT,
+    produc_name VARCHAR(100)NOT NULL,
+    category VARCHAR(50) NOT NULL,
+    price INT NOT NULL,
+    quantity INT NOT NULL,
+    sale_date DATE NOT NULL
+);
+
+INSERT INTO sales (product_name, category, price, quantity, sale_date) VALUES
+('ノートPC', '電子機器', 120000, 2, '2024-12-01'),
+('マウス', '電子機器', 2000, 10, '2024-12-01'),
+('キーボード', '電子機器', 5000, 5, '2024-12-02'),
+('モニター', '電子機器', 30000, 3, '2024-12-02'),
+('デスク', '家具', 25000, 2, '2024-12-03'),
+('チェア', '家具', 15000, 4, '2024-12-03'),
+('本棚', '家具', 10000, 3, '2024-12-04'),
+('ノートPC', '電子機器', 120000, 1, '2024-12-05'),
+('マウス', '電子機器', 2000, 15, '2024-12-05'),
+('デスク', '家具', 25000, 1, '2024-12-06');
+
+
+
+SELECT SUM(subtotal)
+FROM (
+    SELECT
+        price * quantity AS subtotal
+    FROM sales AS s
+) AS total
+
+計算系はselect無いじゃないとダメみたい。あと、今回みたいにsumといった計算式を立てる場合、select内と外で名前付けが必要らしい。何たるめんどくささ(*´ω｀*)
+
+SELECT SUM(カラム命名1)
+FROM (
+    SELECT
+        カラム名1 * カラム名2 AS カラム命名1
+    FROM sales AS s
+) AS カラム命名2
+
+SELECT SUM(カラム命名1)
+FROM
+(
+	SELECT カラム名1 * カラム名2 AS カラム命名1
+FROM sales AS s)
+AS カラム命名2
+
